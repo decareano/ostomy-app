@@ -338,6 +338,66 @@
         }
       };
 
+      function render30DayDailyTotals() {
+        const container = document.getElementById("monthlyTotalsList");
+        if (!container) return;
+
+        const now = new Date();
+        const totalsByDate = {};
+
+        // 1. Initialize the last 30 days with 0 mL
+        for (let i = 0; i < 30; i++) {
+          const d = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() - i,
+          );
+          const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          totalsByDate[dateKey] = 0;
+        }
+
+        // 2. Aggregate logs into their respective local dates
+        logs.forEach((entry) => {
+          const d = new Date(entry.timestamp);
+          const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+          if (totalsByDate.hasOwnProperty(dateKey)) {
+            totalsByDate[dateKey] += entry.amount;
+          }
+        });
+
+        // 3. Render the scrollable daily totals list (Newest first)
+        container.innerHTML = "";
+        const dates = Object.keys(totalsByDate).sort().reverse();
+
+        dates.forEach((dateStr) => {
+          const totalAmount = totalsByDate[dateStr];
+          const [year, month, day] = dateStr.split("-");
+          const formattedDate = new Date(
+            year,
+            month - 1,
+            day,
+          ).toLocaleDateString([], {
+            month: "short",
+            day: "numeric",
+            weekday: "short",
+          });
+
+          const item = document.createElement("div");
+          item.className = "history-item";
+          item.innerHTML = `
+      <div>
+        <strong>${formattedDate}</strong>
+        <span class="history-time">• ${dateStr}</span>
+      </div>
+      <span style="font-weight: 700; color: ${totalAmount === 0 ? "var(--subtext)" : "var(--text)"};">
+        ${totalAmount} mL
+      </span>
+    `;
+          container.appendChild(item);
+        });
+      }
+
       function render() {
         const historyEl = document.getElementById("historyList");
         const totalEl = document.getElementById("todayTotal");
@@ -394,6 +454,8 @@
         });
 
         totalEl.textContent = `${filteredTotal} mL`;
+        // Add this as the very last line inside your render() function
+        render30DayDailyTotals();
       }
     </script>
   </head>
@@ -454,6 +516,15 @@
     <div class="section-title" id="entriesTitle">Today's Entries</div>
     <div class="history" id="historyList">
       <!-- Entries list -->
+    </div>
+
+    <div class="section-title">Last 30 Days (Daily Totals)</div>
+    <div
+      class="history"
+      id="monthlyTotalsList"
+      style="max-height: 320px; overflow-y: auto"
+    >
+      <!-- Daily totals will render here -->
     </div>
 
     <div class="actions">
