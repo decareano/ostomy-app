@@ -6,22 +6,24 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no"
     />
-    <title>Output Tracker</title>
+    <title>Fluid & Output Tracker</title>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <meta name="apple-mobile-web-app-title" content="Output Tracker" />
+    <meta name="apple-mobile-web-app-title" content="Fluid Tracker" />
     <style>
       :root {
         --bg: #f2f2f7;
         --card: #ffffff;
         --primary: #007aff;
+        --intake: #30b0c7; /* Teal color for fluid intake */
         --text: #000000;
         --subtext: #8e8e93;
         --border: #e5e5ea;
         --danger: #ff3b30;
+        --success: #34c759;
       }
       body {
         font-family:
@@ -43,38 +45,50 @@
         font-weight: 700;
         margin: 0;
       }
+
+      /* Dashboard Grid for Cards */
+      .cards-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
       .total-card {
         background: var(--primary);
         color: white;
         border-radius: 20px;
-        padding: 24px;
+        padding: 16px;
         text-align: center;
         box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25);
       }
+      .total-card.intake-card {
+        background: var(--intake);
+        box-shadow: 0 4px 14px rgba(48, 176, 199, 0.25);
+      }
       .total-card h2 {
         margin: 0;
-        font-size: 13px;
+        font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        opacity: 0.85;
+        opacity: 0.9;
       }
       .total-card .amount {
-        font-size: 44px;
+        font-size: 28px;
         font-weight: 800;
         margin: 6px 0 0 0;
         letter-spacing: -0.5px;
       }
 
-      /* Toggle buttons inside Total Card */
+      /* Toggle buttons */
       .date-toggle {
         display: flex;
         justify-content: center;
         gap: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
       }
       .toggle-btn {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--text);
         border: none;
         padding: 6px 16px;
         border-radius: 20px;
@@ -83,12 +97,12 @@
         cursor: pointer;
       }
       .toggle-btn.active {
-        background: #ffffff;
-        color: var(--primary);
+        background: var(--text);
+        color: #ffffff;
       }
 
       .section-title {
-        margin-top: 28px;
+        margin-top: 24px;
         margin-bottom: 10px;
         font-size: 13px;
         font-weight: 600;
@@ -107,14 +121,17 @@
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 14px;
-        padding: 18px 8px;
-        font-size: 18px;
+        padding: 14px 8px;
+        font-size: 16px;
         font-weight: 700;
         color: var(--primary);
         cursor: pointer;
         text-align: center;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
         transition: transform 0.1s ease;
+      }
+      .btn-preset.intake {
+        color: var(--intake);
       }
       .btn-preset:active {
         transform: scale(0.95);
@@ -147,10 +164,13 @@
         color: white;
         border: none;
         border-radius: 14px;
-        padding: 0 24px;
-        font-size: 17px;
+        padding: 0 20px;
+        font-size: 16px;
         font-weight: 600;
         cursor: pointer;
+      }
+      .btn-submit.intake {
+        background: var(--intake);
       }
       .btn-submit:active {
         transform: scale(0.95);
@@ -180,12 +200,68 @@
         font-size: 14px;
         margin-left: 6px;
       }
+
+      .item-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .edit-btn {
+        color: var(--primary);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
       .delete-btn {
         color: var(--danger);
         font-size: 18px;
         padding: 4px 8px;
         cursor: pointer;
         font-weight: bold;
+      }
+
+      .edit-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+      }
+      .edit-input {
+        width: 80px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        font-size: 15px;
+      }
+      .btn-save-inline {
+        background: var(--success);
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-cancel-inline {
+        background: var(--subtext);
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-confirm-delete {
+        background: var(--danger);
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
       }
 
       .actions {
@@ -205,9 +281,6 @@
         cursor: pointer;
         text-align: center;
       }
-      .btn-action.clear {
-        color: var(--danger);
-      }
     </style>
 
     <!-- Firebase SDK Modular Scripts -->
@@ -217,13 +290,12 @@
         getFirestore,
         collection,
         addDoc,
+        updateDoc,
         deleteDoc,
         doc,
         onSnapshot,
         query,
         orderBy,
-        getDocs,
-        writeBatch,
       } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
       // Firebase Configuration
@@ -239,16 +311,34 @@
       // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
-      const logsRef = collection(db, "ostomy_logs");
 
-      let logs = [];
+      const outputLogsRef = collection(db, "ostomy_logs");
+      const intakeLogsRef = collection(db, "intake_logs");
+
+      let outputLogs = [];
+      let intakeLogs = [];
       let selectedView = "today"; // 'today' or 'yesterday'
+      let editingDocId = null;
+      let editingType = null; // 'output' or 'intake'
+      let pendingDeleteId = null;
+      let pendingDeleteType = null;
 
-      // Real-time Cloud Listener
-      const q = query(logsRef, orderBy("timestamp", "desc"));
-      onSnapshot(q, (snapshot) => {
-        logs = snapshot.docs.map((docSnap) => ({
+      // Real-time Cloud Listeners
+      const qOutput = query(outputLogsRef, orderBy("timestamp", "desc"));
+      onSnapshot(qOutput, (snapshot) => {
+        outputLogs = snapshot.docs.map((docSnap) => ({
           docId: docSnap.id,
+          type: "output",
+          ...docSnap.data(),
+        }));
+        render();
+      });
+
+      const qIntake = query(intakeLogsRef, orderBy("timestamp", "desc"));
+      onSnapshot(qIntake, (snapshot) => {
+        intakeLogs = snapshot.docs.map((docSnap) => ({
+          docId: docSnap.id,
+          type: "intake",
           ...docSnap.data(),
         }));
         render();
@@ -256,25 +346,26 @@
 
       window.setView = function (view) {
         selectedView = view;
+        editingDocId = null;
+        pendingDeleteId = null;
         document
           .getElementById("btnToday")
           .classList.toggle("active", view === "today");
         document
           .getElementById("btnYesterday")
           .classList.toggle("active", view === "yesterday");
-        document.getElementById("cardTitle").textContent =
-          view === "today"
-            ? "Today's Total Output"
-            : "Yesterday's Total Output";
-        document.getElementById("entriesTitle").textContent =
-          view === "today" ? "Today's Entries" : "Yesterday's Entries";
+        document.getElementById("outputCardTitle").textContent =
+          view === "today" ? "Today's Output" : "Yesterday's Output";
+        document.getElementById("intakeCardTitle").textContent =
+          view === "today" ? "Today's Intake" : "Yesterday's Intake";
         render();
       };
 
-      window.logOutput = async function (amount, customTimestamp = null) {
+      window.logItem = async function (type, amount, customTimestamp = null) {
         if (!amount || amount <= 0) return;
+        const targetRef = type === "intake" ? intakeLogsRef : outputLogsRef;
         try {
-          await addDoc(logsRef, {
+          await addDoc(targetRef, {
             amount: parseInt(amount, 10),
             timestamp: customTimestamp
               ? new Date(customTimestamp).toISOString()
@@ -285,152 +376,130 @@
         }
       };
 
-      window.logCustom = function () {
-        const input = document.getElementById("customAmount");
-        const dateInput = document.getElementById("customTime");
-
+      window.logCustomOutput = function () {
+        const input = document.getElementById("customOutputAmount");
+        const dateInput = document.getElementById("customOutputTime");
         if (input.value) {
-          const timestamp = dateInput.value ? dateInput.value : null;
-          window.logOutput(input.value, timestamp);
+          window.logItem("output", input.value, dateInput.value || null);
           input.value = "";
           dateInput.value = "";
           input.blur();
         }
       };
 
-      window.deleteEntry = async function (docId) {
+      window.logCustomIntake = function () {
+        const input = document.getElementById("customIntakeAmount");
+        const dateInput = document.getElementById("customIntakeTime");
+        if (input.value) {
+          window.logItem("intake", input.value, dateInput.value || null);
+          input.value = "";
+          dateInput.value = "";
+          input.blur();
+        }
+      };
+
+      window.startEdit = function (docId, type) {
+        editingDocId = docId;
+        editingType = type;
+        pendingDeleteId = null;
+        render();
+      };
+
+      window.cancelEdit = function () {
+        editingDocId = null;
+        render();
+      };
+
+      window.saveEdit = async function (docId, type) {
+        const input = document.getElementById(`edit-input-${docId}`);
+        const newAmount = parseInt(input.value, 10);
+        if (!newAmount || newAmount <= 0) return;
+
+        const collectionName =
+          type === "intake" ? "intake_logs" : "ostomy_logs";
         try {
-          await deleteDoc(doc(db, "ostomy_logs", docId));
+          await updateDoc(doc(db, collectionName, docId), {
+            amount: newAmount,
+          });
+          editingDocId = null;
+        } catch (e) {
+          alert("Error updating entry: " + e.message);
+        }
+      };
+
+      window.promptDelete = function (docId, type) {
+        pendingDeleteId = docId;
+        pendingDeleteType = type;
+        editingDocId = null;
+        render();
+      };
+
+      window.cancelDelete = function () {
+        pendingDeleteId = null;
+        render();
+      };
+
+      window.confirmDelete = async function (docId, type) {
+        const collectionName =
+          type === "intake" ? "intake_logs" : "ostomy_logs";
+        try {
+          await deleteDoc(doc(db, collectionName, docId));
+          pendingDeleteId = null;
         } catch (e) {
           alert("Error deleting entry: " + e.message);
         }
       };
 
       window.exportData = function () {
-        if (logs.length === 0) return alert("No data to copy yet!");
-        let text = "Ostomy Output Log:\n";
-        logs.forEach((l) => {
+        if (outputLogs.length === 0 && intakeLogs.length === 0)
+          return alert("No data to copy yet!");
+        let text = "Fluid & Output Log Summary:\n\n--- OUTPUT ---\n";
+        outputLogs.forEach((l) => {
+          const d = new Date(l.timestamp);
+          text += `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}: ${l.amount} mL\n`;
+        });
+        text += "\n--- FLUID INTAKE ---\n";
+        intakeLogs.forEach((l) => {
           const d = new Date(l.timestamp);
           text += `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}: ${l.amount} mL\n`;
         });
         navigator.clipboard.writeText(text);
-        alert(
-          "Copied summary to clipboard! You can paste it into an email or text message.",
-        );
+        alert("Copied summary to clipboard!");
       };
 
-      window.clearData = async function () {
-        if (
-          confirm(
-            "Are you sure you want to delete all saved entries from cloud storage?",
-          )
-        ) {
-          try {
-            const snapshot = await getDocs(logsRef);
-            const batch = writeBatch(db);
-            snapshot.docs.forEach((docSnap) => {
-              batch.delete(docSnap.ref);
-            });
-            await batch.commit();
-          } catch (e) {
-            alert("Error clearing data: " + e.message);
-          }
-        }
-      };
+      window.downloadCSV = function () {
+        if (outputLogs.length === 0 && intakeLogs.length === 0)
+          return alert("No data to export!");
+        let csv = "Type,Date,Time,Amount (mL)\n";
 
-      function render30DayDailyTotals() {
-        const container = document.getElementById("monthlyTotalsList");
-        if (!container) return;
-
-        const now = new Date();
-        const totalsByDate = {};
-
-        // 1. Initialize the last 30 days with 0 mL
-        for (let i = 0; i < 30; i++) {
-          const d = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate() - i,
-          );
-          const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-          totalsByDate[dateKey] = 0;
-        }
-
-        // 2. Aggregate logs into their respective local dates
-        logs.forEach((entry) => {
-          const d = new Date(entry.timestamp);
-          const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-          if (totalsByDate.hasOwnProperty(dateKey)) {
-            totalsByDate[dateKey] += entry.amount;
-          }
+        outputLogs.forEach((l) => {
+          const d = new Date(l.timestamp);
+          csv += `"Output","${d.toLocaleDateString()}","${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}",${l.amount}\n`;
+        });
+        intakeLogs.forEach((l) => {
+          const d = new Date(l.timestamp);
+          csv += `"Intake","${d.toLocaleDateString()}","${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}",${l.amount}\n`;
         });
 
-        // 3. Render the scrollable daily totals list (Newest first)
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `fluid_tracker_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      function renderList(containerId, list, type) {
+        const container = document.getElementById(containerId);
         container.innerHTML = "";
-        const dates = Object.keys(totalsByDate).sort().reverse();
 
-        dates.forEach((dateStr) => {
-          const totalAmount = totalsByDate[dateStr];
-          const [year, month, day] = dateStr.split("-");
-          const formattedDate = new Date(
-            year,
-            month - 1,
-            day,
-          ).toLocaleDateString([], {
-            month: "short",
-            day: "numeric",
-            weekday: "short",
-          });
-
-          const item = document.createElement("div");
-          item.className = "history-item";
-          item.innerHTML = `
-      <div>
-        <strong>${formattedDate}</strong>
-        <span class="history-time">• ${dateStr}</span>
-      </div>
-      <span style="font-weight: 700; color: ${totalAmount === 0 ? "var(--subtext)" : "var(--text)"};">
-        ${totalAmount} mL
-      </span>
-    `;
-          container.appendChild(item);
-        });
-      }
-
-      function render() {
-        const historyEl = document.getElementById("historyList");
-        const totalEl = document.getElementById("todayTotal");
-
-        const now = new Date();
-        const startOfToday = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-        ).getTime();
-        const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
-        const endOfYesterday = startOfToday;
-
-        let filteredTotal = 0;
-        historyEl.innerHTML = "";
-
-        const filteredLogs = logs.filter((entry) => {
-          const entryTime = new Date(entry.timestamp).getTime();
-          if (selectedView === "today") {
-            return entryTime >= startOfToday;
-          } else {
-            return entryTime >= startOfYesterday && entryTime < endOfYesterday;
-          }
-        });
-
-        if (filteredLogs.length === 0) {
-          historyEl.innerHTML = `<div class="history-item" style="color: var(--subtext)">No entries logged for ${selectedView}.</div>`;
-          totalEl.textContent = "0 mL";
+        if (list.length === 0) {
+          container.innerHTML = `<div class="history-item" style="color: var(--subtext)">No ${type} logged for ${selectedView}.</div>`;
           return;
         }
 
-        filteredLogs.forEach((entry) => {
-          filteredTotal += entry.amount;
+        list.forEach((entry) => {
           const entryDate = new Date(entry.timestamp);
           const formattedTime = entryDate.toLocaleTimeString([], {
             hour: "2-digit",
@@ -443,96 +512,223 @@
 
           const item = document.createElement("div");
           item.className = "history-item";
-          item.innerHTML = `
-            <div>
-              <strong>${entry.amount} mL</strong>
-              <span class="history-time">• ${formattedDate}, ${formattedTime}</span>
-            </div>
-            <span class="delete-btn" onclick="deleteEntry('${entry.docId}')">✕</span>
-          `;
-          historyEl.appendChild(item);
-        });
 
-        totalEl.textContent = `${filteredTotal} mL`;
-        // Add this as the very last line inside your render() function
-        render30DayDailyTotals();
+          if (editingDocId === entry.docId) {
+            item.innerHTML = `
+              <div class="edit-row">
+                <input type="number" id="edit-input-${entry.docId}" class="edit-input" value="${entry.amount}" inputmode="numeric" />
+                <span style="font-size:14px; font-weight:600;">mL</span>
+                <button class="btn-save-inline" onclick="saveEdit('${entry.docId}', '${type}')">Save</button>
+                <button class="btn-cancel-inline" onclick="cancelEdit()">✕</button>
+              </div>
+            `;
+          } else if (pendingDeleteId === entry.docId) {
+            item.innerHTML = `
+              <div>
+                <strong style="color:var(--danger);">Delete entry?</strong>
+              </div>
+              <div class="item-actions">
+                <button class="btn-confirm-delete" onclick="confirmDelete('${entry.docId}', '${type}')">Delete</button>
+                <button class="btn-cancel-inline" onclick="cancelDelete()">Cancel</button>
+              </div>
+            `;
+          } else {
+            item.innerHTML = `
+              <div>
+                <strong>${entry.amount} mL</strong>
+                <span class="history-time">• ${formattedDate}, ${formattedTime}</span>
+              </div>
+              <div class="item-actions">
+                <span class="edit-btn" onclick="startEdit('${entry.docId}', '${type}')">Edit</span>
+                <span class="delete-btn" onclick="promptDelete('${entry.docId}', '${type}')">✕</span>
+              </div>
+            `;
+          }
+
+          container.appendChild(item);
+        });
+      }
+
+      function render() {
+        const now = new Date();
+        const startOfToday = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        ).getTime();
+        const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+        const endOfYesterday = startOfToday;
+
+        const isToday = selectedView === "today";
+
+        // Filter Output
+        const filteredOutput = outputLogs.filter((entry) => {
+          const entryTime = new Date(entry.timestamp).getTime();
+          return isToday
+            ? entryTime >= startOfToday
+            : entryTime >= startOfYesterday && entryTime < endOfYesterday;
+        });
+        const totalOutput = filteredOutput.reduce(
+          (acc, item) => acc + item.amount,
+          0,
+        );
+        document.getElementById("outputTotal").textContent =
+          `${totalOutput} mL`;
+
+        // Filter Intake
+        const filteredIntake = intakeLogs.filter((entry) => {
+          const entryTime = new Date(entry.timestamp).getTime();
+          return isToday
+            ? entryTime >= startOfToday
+            : entryTime >= startOfYesterday && entryTime < endOfYesterday;
+        });
+        const totalIntake = filteredIntake.reduce(
+          (acc, item) => acc + item.amount,
+          0,
+        );
+        document.getElementById("intakeTotal").textContent =
+          `${totalIntake} mL`;
+
+        // Render Lists
+        renderList("outputHistoryList", filteredOutput, "output");
+        renderList("intakeHistoryList", filteredIntake, "intake");
       }
     </script>
   </head>
   <body>
     <div class="header">
-      <h1>Ostomy Output</h1>
+      <h1>Fluid & Output Tracker</h1>
     </div>
 
-    <div class="total-card">
-      <div class="date-toggle">
-        <button
-          id="btnToday"
-          class="toggle-btn active"
-          onclick="setView('today')"
-        >
-          Today
-        </button>
-        <button
-          id="btnYesterday"
-          class="toggle-btn"
-          onclick="setView('yesterday')"
-        >
-          Yesterday
-        </button>
+    <!-- Toggle Date View -->
+    <div class="date-toggle">
+      <button
+        id="btnToday"
+        class="toggle-btn active"
+        onclick="setView('today')"
+      >
+        Today
+      </button>
+      <button
+        id="btnYesterday"
+        class="toggle-btn"
+        onclick="setView('yesterday')"
+      >
+        Yesterday
+      </button>
+    </div>
+
+    <!-- Totals Overview Cards -->
+    <div class="cards-grid">
+      <div class="total-card intake-card">
+        <h2 id="intakeCardTitle">Today's Intake</h2>
+        <div class="amount" id="intakeTotal">0 mL</div>
       </div>
-      <h2 id="cardTitle">Today's Total Output</h2>
-      <div class="amount" id="todayTotal">0 mL</div>
+      <div class="total-card">
+        <h2 id="outputCardTitle">Today's Output</h2>
+        <div class="amount" id="outputTotal">0 mL</div>
+      </div>
     </div>
 
-    <div class="section-title">Quick Log (mL)</div>
+    <!-- FLUID INTAKE SECTION -->
+    <div class="section-title" style="color: var(--intake)">
+      Log Liquid Intake (mL)
+    </div>
     <div class="presets">
-      <button class="btn-preset" onclick="logOutput(100)">100 mL</button>
-      <button class="btn-preset" onclick="logOutput(150)">150 mL</button>
-      <button class="btn-preset" onclick="logOutput(200)">200 mL</button>
-      <button class="btn-preset" onclick="logOutput(250)">250 mL</button>
-      <button class="btn-preset" onclick="logOutput(300)">300 mL</button>
-      <button class="btn-preset" onclick="logOutput(400)">400 mL</button>
+      <button class="btn-preset intake" onclick="logItem('intake', 100)">
+        100 mL
+      </button>
+      <button class="btn-preset intake" onclick="logItem('intake', 200)">
+        200 mL
+      </button>
+      <button class="btn-preset intake" onclick="logItem('intake', 250)">
+        250 mL
+      </button>
+      <button class="btn-preset intake" onclick="logItem('intake', 350)">
+        350 mL
+      </button>
+      <button class="btn-preset intake" onclick="logItem('intake', 500)">
+        500 mL
+      </button>
+      <button class="btn-preset intake" onclick="logItem('intake', 750)">
+        750 mL
+      </button>
     </div>
 
-    <div class="section-title">Custom Amount / Backdate Entry</div>
-    <div class="custom-input">
+    <div class="custom-input" style="margin-top: 10px">
       <input
         type="datetime-local"
-        id="customTime"
+        id="customIntakeTime"
         placeholder="Optional: Pick Date & Time"
       />
       <div class="input-row">
         <input
           type="number"
-          id="customAmount"
-          placeholder="Amount in mL"
+          id="customIntakeAmount"
+          placeholder="Intake Amount (mL)"
           inputmode="numeric"
         />
-        <button class="btn-submit" onclick="logCustom()">Log</button>
+        <button class="btn-submit intake" onclick="logCustomIntake()">
+          Log
+        </button>
       </div>
     </div>
 
-    <div class="section-title" id="entriesTitle">Today's Entries</div>
-    <div class="history" id="historyList">
-      <!-- Entries list -->
+    <div class="section-title">Intake Entries</div>
+    <div class="history" id="intakeHistoryList"></div>
+
+    <!-- OSTOMY OUTPUT SECTION -->
+    <div class="section-title" style="color: var(--primary); margin-top: 36px">
+      Log Ostomy Output (mL)
+    </div>
+    <div class="presets">
+      <button class="btn-preset" onclick="logItem('output', 100)">
+        100 mL
+      </button>
+      <button class="btn-preset" onclick="logItem('output', 150)">
+        150 mL
+      </button>
+      <button class="btn-preset" onclick="logItem('output', 200)">
+        200 mL
+      </button>
+      <button class="btn-preset" onclick="logItem('output', 250)">
+        250 mL
+      </button>
+      <button class="btn-preset" onclick="logItem('output', 300)">
+        300 mL
+      </button>
+      <button class="btn-preset" onclick="logItem('output', 400)">
+        400 mL
+      </button>
     </div>
 
-    <div class="section-title">Last 30 Days (Daily Totals)</div>
-    <div
-      class="history"
-      id="monthlyTotalsList"
-      style="max-height: 320px; overflow-y: auto"
-    >
-      <!-- Daily totals will render here -->
+    <div class="custom-input" style="margin-top: 10px">
+      <input
+        type="datetime-local"
+        id="customOutputTime"
+        placeholder="Optional: Pick Date & Time"
+      />
+      <div class="input-row">
+        <input
+          type="number"
+          id="customOutputAmount"
+          placeholder="Output Amount (mL)"
+          inputmode="numeric"
+        />
+        <button class="btn-submit" onclick="logCustomOutput()">Log</button>
+      </div>
     </div>
 
+    <div class="section-title">Output Entries</div>
+    <div class="history" id="outputHistoryList"></div>
+
+    <!-- GLOBAL ACTIONS -->
     <div class="actions">
       <button class="btn-action" onclick="exportData()">
         Copy All Summary to Clipboard
       </button>
-      <button class="btn-action clear" onclick="clearData()">
-        Clear All Data
+      <button class="btn-action" onclick="downloadCSV()">
+        Download Full Log as CSV
       </button>
     </div>
   </body>
